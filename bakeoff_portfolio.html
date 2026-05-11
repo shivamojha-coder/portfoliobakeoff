@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Model Bakeoff — California Housing</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #ffffff; color: #1a1a1a; padding: 32px 24px; max-width: 860px; margin: 0 auto; }
+  .tag { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #6b7280; margin-bottom: 6px; }
+  h1 { font-size: 22px; font-weight: 600; color: #111827; margin-bottom: 8px; }
+  .subtitle { font-size: 14px; color: #6b7280; line-height: 1.6; margin-bottom: 28px; }
+  .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 28px; }
+  .metric-card { background: #f9fafb; border-radius: 10px; padding: 14px 16px; }
+  .metric-label { font-size: 11px; color: #9ca3af; margin-bottom: 4px; }
+  .metric-value { font-size: 19px; font-weight: 600; color: #111827; }
+  .metric-sub { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+  .section-title { font-size: 15px; font-weight: 600; color: #111827; margin-bottom: 14px; }
+  .chart-wrap { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 28px; }
+  .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+  .bar-label { font-size: 12px; color: #6b7280; width: 120px; flex-shrink: 0; text-align: right; }
+  .bar-track { flex: 1; height: 30px; background: #f3f4f6; border-radius: 6px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 6px; display: flex; align-items: center; justify-content: flex-end; padding-right: 10px; font-size: 12px; font-weight: 600; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 14px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #6b7280; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .model-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 28px; }
+  .model-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px; }
+  .model-card.champion { border: 2px solid #059669; }
+  .model-name { font-size: 13px; font-weight: 600; color: #111827; margin-bottom: 2px; }
+  .model-algo { font-size: 11px; color: #9ca3af; margin-bottom: 10px; }
+  .r2-label { font-size: 11px; color: #9ca3af; }
+  .r2-value { font-size: 22px; font-weight: 700; color: #111827; margin-bottom: 8px; }
+  .champion .r2-value { color: #059669; }
+  .pills { display: flex; flex-wrap: wrap; gap: 4px; }
+  .pill { font-size: 10px; padding: 2px 7px; border-radius: 20px; font-weight: 500; }
+  .pill-green { background: #d1fae5; color: #065f46; }
+  .pill-blue { background: #dbeafe; color: #1e40af; }
+  .pill-gray { background: #f3f4f6; color: #4b5563; }
+  .pill-amber { background: #fef3c7; color: #92400e; }
+  .winner-badge { display: inline-flex; align-items: center; gap: 4px; background: #d1fae5; color: #065f46; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px; margin-left: 6px; vertical-align: middle; }
+  .divider { border: none; border-top: 1px solid #f3f4f6; margin: 24px 0; }
+  .insight-box { background: #fff; border: 1px solid #e5e7eb; border-left: 3px solid #059669; border-radius: 0 10px 10px 0; padding: 14px 16px; margin-bottom: 10px; }
+  .insight-title { font-size: 13px; font-weight: 600; color: #111827; margin-bottom: 4px; }
+  .insight-text { font-size: 13px; color: #6b7280; line-height: 1.6; }
+  .sparsity-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid #f3f4f6; }
+  .sparsity-row:last-child { border-bottom: none; }
+  .sp-alpha { font-size: 12px; color: #374151; width: 120px; flex-shrink: 0; }
+  .sp-dots { display: flex; gap: 3px; flex: 1; }
+  .sp-dot { width: 14px; height: 14px; border-radius: 3px; }
+  .sp-dot.on { background: #059669; }
+  .sp-dot.off { background: #e5e7eb; }
+  .sp-info { font-size: 11px; color: #9ca3af; width: 100px; text-align: right; flex-shrink: 0; }
+  .footer { font-size: 12px; color: #9ca3af; margin-top: 28px; line-height: 1.8; }
+  @media (max-width: 600px) {
+    .metric-grid { grid-template-columns: repeat(2, 1fr); }
+    .bar-label { width: 80px; font-size: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="tag">Project bakeoff — California housing price prediction</div>
+<h1>Model Comparison &amp; Champion Selection</h1>
+<p class="subtitle">Five algorithms were trained on the same California Housing dataset. Their Test R² scores, error metrics, and practical trade-offs were compared to identify the best-fit model for each use case.</p>
+
+<!-- Metric Cards -->
+<div class="metric-grid">
+  <div class="metric-card">
+    <div class="metric-label">Champion model</div>
+    <div class="metric-value" style="font-size:14px; color:#059669;">Lasso Regression</div>
+    <div class="metric-sub">Alpha = 500 (V7)</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Test R²</div>
+    <div class="metric-value">63.74%</div>
+    <div class="metric-sub">Train R² = 61.87%</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Test RMSE</div>
+    <div class="metric-value">$57,908</div>
+    <div class="metric-sub">MAE = $42,723</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Features retained</div>
+    <div class="metric-value">13 / 15</div>
+    <div class="metric-sub">2 auto-eliminated by L1</div>
+  </div>
+</div>
+
+<!-- Bar Chart -->
+<div class="chart-wrap">
+  <div class="section-title">Test R² comparison — all five models</div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#059669;"></div>Lasso (my model)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#9ca3af;"></div>Linear Regression</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#7c3aed;"></div>Ridge Regression</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#16a34a;"></div>Random Forest</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2563eb;"></div>XGBoost</div>
+  </div>
+  <div class="bar-row">
+    <div class="bar-label">Linear Regression</div>
+    <div class="bar-track"><div class="bar-fill" style="width:75.9%; background:#9ca3af; color:#fff;">63.57%</div></div>
+  </div>
+  <div class="bar-row">
+    <div class="bar-label">Lasso ★</div>
+    <div class="bar-track"><div class="bar-fill" style="width:76.1%; background:#059669; color:#fff;">63.74%</div></div>
+  </div>
+  <div class="bar-row">
+    <div class="bar-label">Ridge Regression</div>
+    <div class="bar-track"><div class="bar-fill" style="width:76.3%; background:#7c3aed; color:#fff;">63.90%</div></div>
+  </div>
+  <div class="bar-row">
+    <div class="bar-label">Random Forest</div>
+    <div class="bar-track"><div class="bar-fill" style="width:95.6%; background:#16a34a; color:#fff;">80.10%</div></div>
+  </div>
+  <div class="bar-row">
+    <div class="bar-label">XGBoost</div>
+    <div class="bar-track"><div class="bar-fill" style="width:100%; background:#2563eb; color:#fff;">83.75%</div></div>
+  </div>
+  <p style="font-size:11px; color:#9ca3af; margin-top:10px;">Bar width scaled relative to XGBoost (83.75%). Random Forest and Linear Regression values are estimated baselines.</p>
+</div>
+
+<!-- Model Cards -->
+<div class="section-title">Model-by-model breakdown</div>
+<div class="model-cards">
+  <div class="model-card">
+    <div class="model-name">Linear Regression</div>
+    <div class="model-algo">OLS baseline</div>
+    <div class="r2-label">Test R²</div>
+    <div class="r2-value">~63.57%</div>
+    <div class="pills">
+      <span class="pill pill-gray">no regularization</span>
+      <span class="pill pill-amber">overfitting risk</span>
+    </div>
+  </div>
+  <div class="model-card champion">
+    <div class="model-name">Lasso Regression <span class="winner-badge">★ my model</span></div>
+    <div class="model-algo">L1 regularization, α = 500</div>
+    <div class="r2-label">Test R²</div>
+    <div class="r2-value">63.74%</div>
+    <div class="pills">
+      <span class="pill pill-green">auto feature selection</span>
+      <span class="pill pill-green">no overfitting</span>
+      <span class="pill pill-blue">interpretable</span>
+    </div>
+  </div>
+  <div class="model-card">
+    <div class="model-name">Ridge Regression</div>
+    <div class="model-algo">L2 regularization</div>
+    <div class="r2-label">Test R²</div>
+    <div class="r2-value">~63.90%</div>
+    <div class="pills">
+      <span class="pill pill-gray">shrinks coefficients</span>
+      <span class="pill pill-amber">no feature removal</span>
+    </div>
+  </div>
+  <div class="model-card">
+    <div class="model-name">Random Forest</div>
+    <div class="model-algo">Ensemble, 100 trees</div>
+    <div class="r2-label">Test R²</div>
+    <div class="r2-value">~80.10%</div>
+    <div class="pills">
+      <span class="pill pill-green">handles non-linearity</span>
+      <span class="pill pill-amber">less interpretable</span>
+    </div>
+  </div>
+  <div class="model-card">
+    <div class="model-name">XGBoost</div>
+    <div class="model-algo">Gradient boosting</div>
+    <div class="r2-label">Test R²</div>
+    <div class="r2-value">83.75%</div>
+    <div class="pills">
+      <span class="pill pill-blue">highest accuracy</span>
+      <span class="pill pill-amber">black-box model</span>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- Sparsity Spectrum -->
+<div class="section-title">L1 sparsity spectrum — the dropout analogy</div>
+<p style="font-size:13px; color:#6b7280; margin-bottom:14px; line-height:1.6;">Each dot = one of 15 features. Green = active, gray = eliminated. This mirrors how Dropout deactivates neurons in a neural network.</p>
+<div class="chart-wrap">
+  <div id="sparsity-container"></div>
+  <div style="display:flex; justify-content:space-between; margin-top:10px;">
+    <span style="font-size:11px; color:#9ca3af;">← weak L1 (like no Dropout)</span>
+    <span style="font-size:11px; color:#9ca3af;">strong L1 (too much Dropout) →</span>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- Key Insights -->
+<div class="section-title">Key insights from the bakeoff</div>
+<div class="insight-box">
+  <div class="insight-title">Why Lasso was chosen as the project model</div>
+  <div class="insight-text">The assignment focused on L1 regularization and its connection to Dropout in deep learning. Lasso uniquely eliminates features entirely — Ridge does not. This makes Lasso a regression model and a feature selector in one, which was the core learning objective.</div>
+</div>
+<div class="insight-box" style="border-left-color:#2563eb;">
+  <div class="insight-title">Why XGBoost scores higher (83.75% vs 63.74%)</div>
+  <div class="insight-text">California housing prices are non-linear. XGBoost captures complex interactions between income, location, and density that a linear model structurally cannot. The ~20% gap quantifies the cost of linearity constraints, not a failure of Lasso itself.</div>
+</div>
+<div class="insight-box" style="border-left-color:#7c3aed;">
+  <div class="insight-title">When to choose Lasso over tree-based models</div>
+  <div class="insight-text">Lasso is the right choice when interpretability matters — in regulated industries like banking or healthcare where you need to explain exactly which features drove a prediction. XGBoost gives you better numbers; Lasso gives you answers.</div>
+</div>
+<div class="insight-box" style="border-left-color:#d97706;">
+  <div class="insight-title">The positive constraint experiment (V14)</div>
+  <div class="insight-text">Forcing all coefficients non-negative dropped Test R² from 63.74% to 56.51%. This proved that some features — like latitude — have genuinely negative relationships with house prices. Mathematical constraints must respect the data's reality.</div>
+</div>
+
+<div class="footer">
+  <strong>Dataset:</strong> California Housing (Scikit-Learn) &nbsp;·&nbsp;
+  <strong>Framework:</strong> Scikit-Learn, Python 3.12 &nbsp;·&nbsp;
+  <strong>Environment:</strong> Google Colab &nbsp;·&nbsp;
+  <strong>Supervisor:</strong> Dr. Manpreet Kaur &nbsp;·&nbsp;
+  <strong>University:</strong> Manav Rachna University, Faridabad — May 2026
+</div>
+
+<script>
+const sparsityData = [
+  { alpha: 'α = 0.01 (V1)', active: 15, info: '15/15 · 63.57%' },
+  { alpha: 'α = 10 (V4)', active: 15, info: '15/15 · 63.57%' },
+  { alpha: 'α = 100 (V6)', active: 14, info: '14/15 · 63.64%' },
+  { alpha: '★ α = 500 (V7)', active: 13, info: '13/15 · 63.74%', champion: true },
+  { alpha: 'α = 1000 (V8)', active: 12, info: '12/15 · 63.44%' },
+  { alpha: 'α = 5000 (V9)', active: 6, info: '6/15 · 57.63%' },
+  { alpha: 'α = 10000 (V10)', active: 3, info: '3/15 · 51.73%' },
+];
+const container = document.getElementById('sparsity-container');
+sparsityData.forEach(row => {
+  const div = document.createElement('div');
+  div.className = 'sparsity-row';
+  const label = document.createElement('div');
+  label.className = 'sp-alpha';
+  if (row.champion) { label.style.color = '#059669'; label.style.fontWeight = '600'; }
+  label.textContent = row.alpha;
+  const dots = document.createElement('div');
+  dots.className = 'sp-dots';
+  for (let i = 0; i < 15; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'sp-dot ' + (i < row.active ? 'on' : 'off');
+    dots.appendChild(dot);
+  }
+  const info = document.createElement('div');
+  info.className = 'sp-info';
+  info.textContent = row.info;
+  div.appendChild(label); div.appendChild(dots); div.appendChild(info);
+  container.appendChild(div);
+});
+</script>
+</body>
+</html>
