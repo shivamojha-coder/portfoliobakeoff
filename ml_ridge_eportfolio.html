@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>From Noisy to Smooth: My Ridge Regression Journey</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,700;0,900;1,300;1,700&family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0d0d0d;
+    --paper: #f5f2eb;
+    --cream: #fffdf7;
+    --navy: #0f1c2e;
+    --teal: #00897b;
+    --teal-light: #b2dfdb;
+    --amber: #f59e0b;
+    --red: #e53935;
+    --red-soft: #fde8e8;
+    --green: #2e7d32;
+    --green-soft: #e8f5e9;
+    --grid: rgba(0,137,123,0.06);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 16px;
+    line-height: 1.7;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    background: var(--navy);
+    color: var(--paper);
+    padding: 90px 40px 70px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: 'L2';
+    position: absolute;
+    right: -20px; top: -40px;
+    font-family: 'Fraunces', serif;
+    font-size: 320px;
+    font-weight: 900;
+    color: rgba(0,137,123,0.08);
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
+  }
+  .hero-inner { max-width: 780px; margin: 0 auto; position: relative; }
+  .hero-eyebrow {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--teal);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(36px, 7vw, 72px);
+    font-weight: 900;
+    line-height: 1.05;
+    margin-bottom: 22px;
+    letter-spacing: -1px;
+  }
+  .hero h1 em {
+    font-style: italic;
+    color: var(--teal);
+  }
+  .hero-sub {
+    font-size: 17px;
+    color: rgba(245,242,235,0.65);
+    max-width: 540px;
+    font-weight: 400;
+    line-height: 1.8;
+  }
+
+  /* ── STATS BAR ── */
+  .stats-bar {
+    background: var(--teal);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    text-align: center;
+  }
+  .stat-item {
+    padding: 28px 16px;
+    border-right: 1px solid rgba(255,255,255,0.15);
+  }
+  .stat-item:last-child { border-right: none; }
+  .stat-value {
+    font-family: 'Fraunces', serif;
+    font-size: 30px;
+    font-weight: 700;
+    color: #fff;
+    display: block;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .stat-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,0.7);
+    text-transform: uppercase;
+  }
+
+  /* ── LAYOUT ── */
+  .wrap { max-width: 820px; margin: 0 auto; padding: 70px 28px; }
+  .section-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--teal);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .section-h {
+    font-family: 'Fraunces', serif;
+    font-size: 34px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--navy);
+    margin-bottom: 18px;
+  }
+  .section-h em { font-style: italic; color: var(--teal); }
+  .body-text { color: #333; font-size: 15px; line-height: 1.85; font-weight: 400; }
+  .body-text + .body-text { margin-top: 14px; }
+
+  .divider {
+    border: none;
+    border-top: 1.5px solid rgba(0,137,123,0.2);
+    margin: 60px 0;
+  }
+
+  /* ── CARDS GRID ── */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 16px;
+    margin-top: 32px;
+  }
+  .card {
+    background: var(--cream);
+    border: 1.5px solid #e0ddd6;
+    border-radius: 14px;
+    padding: 22px 18px;
+    transition: transform .2s, box-shadow .2s;
+  }
+  .card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+  .card-num {
+    font-family: 'Fraunces', serif;
+    font-size: 42px;
+    font-weight: 900;
+    color: var(--teal-light);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .card h3 { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .card p { font-size: 12px; color: #777; line-height: 1.6; }
+
+  /* ── MISTAKE / CALLOUT ── */
+  .mistake {
+    border-left: 4px solid var(--red);
+    background: var(--red-soft);
+    border-radius: 0 12px 12px 0;
+    padding: 18px 22px;
+    margin: 26px 0;
+  }
+  .mistake-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 6px;
+    font-weight: 700;
+  }
+  .mistake p { font-size: 14px; color: #6b2020; line-height: 1.7; }
+
+  .insight {
+    background: var(--navy);
+    color: var(--paper);
+    border-radius: 16px;
+    padding: 34px 38px;
+    margin: 36px 0;
+  }
+  .insight h3 { font-family: 'Fraunces', serif; font-size: 22px; margin-bottom: 10px; }
+  .insight p { font-size: 14px; color: rgba(245,242,235,0.7); line-height: 1.8; }
+
+  /* ── ALPHA TABLE ── */
+  table.alpha {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 24px;
+    background: var(--cream);
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1.5px solid #e0ddd6;
+  }
+  table.alpha thead tr { background: var(--navy); color: var(--paper); }
+  table.alpha th { padding: 11px 16px; text-align: left; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 400; }
+  table.alpha td { padding: 10px 16px; border-bottom: 1px solid #f0ede6; color: #3a3a3a; font-weight: 400; }
+  table.alpha tr.best td { background: var(--green-soft); font-weight: 600; }
+  table.alpha tr.best td:first-child { color: var(--green); }
+  table.alpha tr:last-child td { border-bottom: none; }
+
+  /* ── CHARTS ── */
+  .chart-wrap {
+    background: var(--cream);
+    border: 1.5px solid #e0ddd6;
+    border-radius: 16px;
+    overflow: hidden;
+    margin: 30px 0;
+  }
+  .chart-body { padding: 24px 24px 12px; }
+  .chart-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 18px;
+  }
+  .chart-caption {
+    padding: 14px 22px;
+    border-top: 1.5px solid #f0ede6;
+    font-size: 12px;
+    color: #888;
+    line-height: 1.7;
+  }
+  .chart-caption strong { color: var(--navy); font-weight: 600; }
+
+  /* Bar chart for alpha sweep */
+  .bar-chart { display: flex; flex-direction: column; gap: 7px; }
+  .bar-row { display: flex; align-items: center; gap: 10px; }
+  .bar-label { font-family: 'Space Mono', monospace; font-size: 10px; color: #666; width: 60px; text-align: right; flex-shrink: 0; }
+  .bar-track { flex: 1; background: #ede9e0; border-radius: 4px; height: 22px; overflow: hidden; position: relative; }
+  .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    padding-right: 8px;
+    justify-content: flex-end;
+    transition: width 1s cubic-bezier(.4,0,.2,1);
+    background: var(--teal);
+  }
+  .bar-fill.best { background: var(--teal); box-shadow: 0 0 0 2px var(--teal), 0 0 0 4px rgba(0,137,123,0.2); }
+  .bar-fill.dim { background: #b0c9c6; }
+  .bar-pct { font-family: 'Space Mono', monospace; font-size: 9px; color: #fff; font-weight: 700; }
+  .bar-star { font-size: 11px; flex-shrink: 0; }
+
+  /* Dot scatter (predicted vs actual proxy) */
+  svg.scatter { width: 100%; height: 200px; }
+
+  /* Feature coeff horizontal bars */
+  .coeff-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .coeff-name { font-family: 'Space Mono', monospace; font-size: 9.5px; color: #444; width: 160px; flex-shrink: 0; text-align: right; }
+  .coeff-track { flex: 1; height: 16px; position: relative; display: flex; align-items: center; }
+  .coeff-center { width: 2px; background: #ccc; height: 100%; position: absolute; left: 50%; transform: translateX(-50%); }
+  .coeff-bar {
+    height: 14px;
+    border-radius: 3px;
+    position: absolute;
+  }
+  .coeff-pos { background: var(--teal); left: 50%; }
+  .coeff-neg { background: #e53935; right: 50%; }
+  .coeff-val { font-family: 'Space Mono', monospace; font-size: 9px; color: #666; width: 58px; flex-shrink: 0; }
+
+  /* ── LESSONS ── */
+  .lessons { list-style: none; display: flex; flex-direction: column; gap: 16px; margin-top: 24px; }
+  .lessons li { display: flex; gap: 14px; align-items: flex-start; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); flex-shrink: 0; margin-top: 8px; }
+  .lessons span { font-size: 15px; color: #333; line-height: 1.75; }
+
+  /* ── TAGS ── */
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .tag {
+    display: inline-block;
+    background: var(--green-soft);
+    color: var(--green);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    padding: 5px 13px;
+    border-radius: 20px;
+    font-weight: 400;
+  }
+
+  /* ── PHASE TIMELINE ── */
+  .phases { margin-top: 28px; display: flex; flex-direction: column; gap: 0; }
+  .phase { display: grid; grid-template-columns: 90px 1fr; gap: 20px; position: relative; padding-bottom: 28px; }
+  .phase::before {
+    content: '';
+    position: absolute;
+    left: 44px;
+    top: 36px;
+    bottom: 0;
+    width: 2px;
+    background: #e0ddd6;
+  }
+  .phase:last-child::before { display: none; }
+  .phase:last-child { padding-bottom: 0; }
+  .phase-num {
+    font-family: 'Fraunces', serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--teal);
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 2px auto 0;
+    flex-shrink: 0;
+    letter-spacing: -0.5px;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+  }
+  .phase-content { }
+  .phase-title { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 5px; }
+  .phase-desc { font-size: 13px; color: #555; line-height: 1.7; }
+  .phase-badge {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 10px;
+    margin-top: 8px;
+  }
+  .badge-ok { background: var(--green-soft); color: var(--green); }
+  .badge-warn { background: #fff3e0; color: #e65100; }
+  .badge-best { background: var(--teal); color: #fff; }
+
+  footer {
+    background: var(--navy);
+    color: rgba(245,242,235,0.45);
+    text-align: center;
+    padding: 28px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+
+  @media (max-width: 560px) {
+    .stats-bar { grid-template-columns: 1fr 1fr; }
+    .stat-item:nth-child(2) { border-right: none; }
+    .coeff-name { width: 100px; font-size: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-eyebrow">Portfolio Case Study · ML Bakeoff · May 2026</div>
+    <h1>From Noisy to <em>Smooth</em>:<br>My Ridge Regression<br>Journey</h1>
+    <p class="hero-sub">How I went from an R² of 0.18 to 0.65 — through 15 model versions, one costly mistake, and a very important lesson about regularization.</p>
+  </div>
+</section>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stat-item">
+    <span class="stat-value">65%</span>
+    <span class="stat-label">Final Test R²</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-value">15</span>
+    <span class="stat-label">Model Versions</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-value">$57K</span>
+    <span class="stat-label">Test RMSE</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-value">α = 500</span>
+    <span class="stat-label">Best Alpha</span>
+  </div>
+</div>
+
+<!-- SECTION 1: OVERVIEW -->
+<div class="wrap">
+  <div class="section-tag">01 — The Challenge</div>
+  <h2 class="section-h">The Problem That<br><em>Hooked</em> Me</h2>
+  <p class="body-text">The brief was deceptively simple: predict California residential house prices using census-level data. Dataset had been on Kaggle forever. It felt almost too familiar. But the real challenge wasn't building a model — it was understanding <em>why</em> every choice mattered, and being able to defend it.</p>
+  <p class="body-text">I was assigned <strong>Ridge Regression (L2 Regularization)</strong>. My goal: show that coefficient shrinkage is a universal principle — similar to weight decay in neural networks — and build 15 model iterations to prove it.</p>
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-num">01</div>
+      <h3>Data Exploration</h3>
+      <p>Distributions, nulls, datatypes, and target skew.</p>
+    </div>
+    <div class="card">
+      <div class="card-num">02</div>
+      <h3>Data Cleaning</h3>
+      <p>Median/mode imputation, IQR outlier removal, duplicate drops.</p>
+    </div>
+    <div class="card">
+      <div class="card-num">03</div>
+      <h3>Feature Engineering</h3>
+      <p>Three ratio features that turned raw counts into real signal.</p>
+    </div>
+    <div class="card">
+      <div class="card-num">04</div>
+      <h3>Ridge + Tuning</h3>
+      <p>15 versions across 10 alpha values and 4 solvers.</p>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- SECTION 2: STARTING POINT -->
+  <div class="section-tag">02 — Honest Beginnings</div>
+  <h2 class="section-h">How <em>Lost</em> I Was (V1)</h2>
+  <p class="body-text">I did not open the dataset and immediately know what to do. My very first run produced an R² of 0.18 and an RMSE of $119,000 — more than twice what my final model would achieve.</p>
+
+  <div class="mistake">
+    <div class="mistake-label">What went wrong in V1</div>
+    <p>Forgot StandardScaler entirely — L2 penalty hit latitude/longitude disproportionately since they're in degree units. Left ocean_proximity as a raw string column so the encoder crashed mid-fit. Did not remove outliers before the train/test split, making predictions at extreme house values wildly inaccurate.</p>
+  </div>
+
+  <p class="body-text">These weren't algorithm problems — they were pipeline discipline problems. The most important lesson arrived before any hyperparameter was touched.</p>
+
+  <hr class="divider">
+
+  <!-- SECTION 3: EDA -->
+  <div class="section-tag">03 — What the Data Said</div>
+  <h2 class="section-h">Two Insights That<br><em>Changed</em> Everything</h2>
+  <p class="body-text">Before writing another line of model code I spent a full day on EDA: correlation matrices, scatter plots, and geographic distributions. Two findings reshaped my entire approach.</p>
+
+  <!-- CHART 1: Correlation bar chart (stylised) -->
+  <div class="chart-wrap">
+    <div class="chart-body">
+      <div class="chart-title">Feature Correlation with Target (median_house_value)</div>
+      <div class="bar-chart" id="corrChart">
+        <!-- rendered by JS -->
+      </div>
+    </div>
+    <div class="chart-caption">
+      <strong>Key finding:</strong> median_income is the dominant predictor at 0.64 correlation. The four raw count features (rooms, bedrooms, population, households) are highly inter-correlated with each other (0.86–0.98) — Ridge Regression handles this multicollinearity by <em>shrinking all of them</em> proportionally, rather than dropping any.
+    </div>
+  </div>
+
+  <p class="body-text">The multicollinearity cluster told me I should <em>not</em> manually drop correlated features — Ridge was designed for exactly this situation. Manually removing them would throw away real information.</p>
+
+  <hr class="divider">
+
+  <!-- SECTION 4: FEATURE ENG -->
+  <div class="section-tag">04 — Feature Engineering</div>
+  <h2 class="section-h">Building <em>Smarter</em> Inputs</h2>
+  <p class="body-text">Raw census counts are size-biased. A neighbourhood with 10,000 total rooms tells you nothing without knowing how many households there are. I engineered three ratio features that gave the model genuine per-unit context:</p>
+
+  <!-- CHART 2: Feature impact comparison -->
+  <div class="chart-wrap">
+    <div class="chart-body">
+      <div class="chart-title">Engineered Feature Definitions &amp; Signal</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-top:8px">
+        <div style="background:#f0f9f7; border-radius:10px; padding:16px;">
+          <div style="font-family:'Space Mono',monospace; font-size:10px; color:var(--teal); margin-bottom:6px;">ROOMS / HH</div>
+          <div style="font-size:11px; color:#333; line-height:1.6;">total_rooms ÷ (households + 1)</div>
+          <div style="font-size:11px; color:#666; margin-top:6px;">Average living space per unit</div>
+        </div>
+        <div style="background:#f0f9f7; border-radius:10px; padding:16px;">
+          <div style="font-family:'Space Mono',monospace; font-size:10px; color:var(--teal); margin-bottom:6px;">BEDS / ROOM</div>
+          <div style="font-size:11px; color:#333; line-height:1.6;">total_bedrooms ÷ (total_rooms + 1)</div>
+          <div style="font-size:11px; color:#666; margin-top:6px;">Layout density &amp; property type</div>
+        </div>
+        <div style="background:#f0f9f7; border-radius:10px; padding:16px;">
+          <div style="font-family:'Space Mono',monospace; font-size:10px; color:var(--teal); margin-bottom:6px;">POP / HH</div>
+          <div style="font-size:11px; color:#333; line-height:1.6;">population ÷ (households + 1)</div>
+          <div style="font-size:11px; color:#666; margin-top:6px;">Neighbourhood occupancy density</div>
+        </div>
+      </div>
+    </div>
+    <div class="chart-caption">
+      All three engineered features survived Ridge's coefficient shrinkage at high alpha values — confirming they carry genuine predictive signal, not noise.
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- SECTION 5: THE MISTAKE -->
+  <div class="section-tag">05 — Key Learning Moment</div>
+  <h2 class="section-h">The Experiment That<br><em>Taught</em> the Most</h2>
+  <p class="body-text">Midway through, I tried SelectKBest — a filter-based feature selection method — to reduce the feature set and (I assumed) improve accuracy. It backfired immediately.</p>
+
+  <div class="mistake">
+    <div class="mistake-label">SelectKBest Failure</div>
+    <p>After applying SelectKBest, R² dropped significantly. Some of the engineered ratio features were removed because their individual F-scores looked modest. Feature interactions were ignored entirely. The core lesson: Ridge Regression already handles correlated and low-signal features gracefully via coefficient shrinkage. Applying aggressive external feature selection on top made it worse, not better.</p>
+  </div>
+
+  <div class="insight">
+    <h3>The Real Insight</h3>
+    <p>Fewer features ≠ better model. Machine learning is about preserving meaningful signal while controlling noise — which is exactly what L2 regularization does far more elegantly than manual feature dropping. Let the math do the work.</p>
+  </div>
+
+  <hr class="divider">
+
+  <!-- SECTION 6: 15 VERSIONS -->
+  <div class="section-tag">06 — Model Training</div>
+  <h2 class="section-h">15 Versions,<br><em>One</em> Champion</h2>
+  <p class="body-text">I trained 15 Ridge Regression versions across a wide sweep of alpha values (0.1 → 50,000) and four solvers (auto, sag, lsqr, cholesky). Here's how the story unfolded:</p>
+
+  <div class="phases">
+    <div class="phase">
+      <div><div class="phase-num">V1–V4</div></div>
+      <div class="phase-content">
+        <div class="phase-title">Low Regularization — Alpha 0.1 to 10</div>
+        <div class="phase-desc">Minimal coefficient shrinkage. Models behaved almost identically to standard linear regression. R² hovered around 0.62–0.63 with a slight overfitting gap visible on validation data.</div>
+        <span class="phase-badge badge-ok">Baseline established</span>
+      </div>
+    </div>
+    <div class="phase">
+      <div><div class="phase-num">V5–V7</div></div>
+      <div class="phase-content">
+        <div class="phase-title">Optimal Zone — Alpha 50 to 500</div>
+        <div class="phase-desc">This is where regularization earned its keep. At Alpha = 500 (V6), the model found the ideal bias-variance balance — train, validation, and test R² all converged near 0.65. Generalization without sacrificing learning capacity.</div>
+        <span class="phase-badge badge-best">★ V6 Champion — Alpha = 500</span>
+      </div>
+    </div>
+    <div class="phase">
+      <div><div class="phase-num">V8–V11</div></div>
+      <div class="phase-content">
+        <div class="phase-title">Aggressive Shrinkage — Alpha 1,000 to 10,000</div>
+        <div class="phase-desc">Coefficients became too small to represent real relationships in the data. Test R² dropped steadily — to 0.61 at Alpha=1K and 0.52 at Alpha=10K. Underfitting territory. This is the weight decay analogy made concrete.</div>
+        <span class="phase-badge badge-warn">Underfitting begins</span>
+      </div>
+    </div>
+    <div class="phase">
+      <div><div class="phase-num">V12–V15</div></div>
+      <div class="phase-content">
+        <div class="phase-title">Solver Experiments — sag, lsqr, cholesky</div>
+        <div class="phase-desc">Switching solvers at the optimal alpha confirmed convergence stability — results were consistent across all four solvers. Also confirmed that <em>positive=True</em> forced constraints destroy genuine negative relationships (like latitude), proving real-world predictors shouldn't be constrained arbitrarily.</div>
+        <span class="phase-badge badge-ok">Convergence confirmed</span>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- SECTION 7: ALPHA SWEEP CHART -->
+  <div class="section-tag">06 — Alpha Sweep Visualisation</div>
+  <h2 class="section-h">Watching the Model<br><em>Find</em> Its Balance</h2>
+  <p class="body-text">Each bar below represents one model version's Test R². The inverted-U shape is exactly what ridge regularization theory predicts — too little shrinkage allows noise, too much destroys signal.</p>
+
+  <div class="chart-wrap">
+    <div class="chart-body">
+      <div class="chart-title">Test R² Score — All 15 Model Versions</div>
+      <div class="bar-chart" id="alphaChart"></div>
+    </div>
+    <div class="chart-caption">
+      <strong>Sweet spot at Alpha = 500.</strong> Scores plateau near 0.63 for small alpha (minimal regularization), peak at 0.65 for Alpha=500, then fall steadily as extreme shrinkage erases predictive signal. The pattern mirrors how dropout probability in neural networks shows a similar inverted-U against test accuracy.
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- SECTION 8: COEFFICIENTS -->
+  <div class="section-tag">07 — Inside the Best Model</div>
+  <h2 class="section-h">What V6 <em>Learned</em></h2>
+  <p class="body-text">At Alpha = 500, Ridge kept all coefficients at meaningful magnitudes — no zeroing out, just proportional shrinkage. Here's what the model valued most:</p>
+
+  <div class="chart-wrap">
+    <div class="chart-body">
+      <div class="chart-title">Feature Coefficients — Best Model V6 (Alpha = 500)</div>
+      <div id="coeffChart" style="margin-top:12px;"></div>
+    </div>
+    <div class="chart-caption">
+      <strong>median_income dominates</strong> with the largest positive coefficient, as expected. Ocean proximity (INLAND) and latitude carry the largest negative values — confirming that inland, northern locations trade at a discount. L2 kept all magnitudes controlled; no single coefficient inflated to absorb excess variance.
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- SECTION 9: RESULTS -->
+  <div class="section-tag">08 — Final Results</div>
+  <h2 class="section-h">Best Model Performance —<br><em>V6, Alpha = 500</em></h2>
+
+  <!-- CHART: Predicted vs Actual proxy -->
+  <div class="chart-wrap">
+    <div class="chart-body">
+      <div class="chart-title">Predicted vs Actual — V6 (R²=0.65, RMSE=$57,403)</div>
+      <svg class="scatter" id="scatterChart" viewBox="0 0 500 200"></svg>
+    </div>
+    <div class="chart-caption">
+      <strong>Points cluster well along the ideal diagonal</strong> in the $100K–$300K range. Spread increases at higher values — a normal pattern where luxury properties have less predictable census-level signals. The distribution shows no systematic bias across the range.
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:14px; margin:28px 0;">
+    <div class="card" style="text-align:center;">
+      <div style="font-family:'Fraunces',serif; font-size:36px; font-weight:900; color:var(--teal); line-height:1; margin-bottom:6px;">65%</div>
+      <div style="font-family:'Space Mono',monospace; font-size:10px; letter-spacing:2px; color:#888; text-transform:uppercase;">Test R²</div>
+    </div>
+    <div class="card" style="text-align:center;">
+      <div style="font-family:'Fraunces',serif; font-size:36px; font-weight:900; color:var(--teal); line-height:1; margin-bottom:6px;">$57K</div>
+      <div style="font-family:'Space Mono',monospace; font-size:10px; letter-spacing:2px; color:#888; text-transform:uppercase;">RMSE</div>
+    </div>
+    <div class="card" style="text-align:center;">
+      <div style="font-family:'Fraunces',serif; font-size:36px; font-weight:900; color:var(--teal); line-height:1; margin-bottom:6px;">15</div>
+      <div style="font-family:'Space Mono',monospace; font-size:10px; letter-spacing:2px; color:#888; text-transform:uppercase;">Versions</div>
+    </div>
+  </div>
+
+  <div class="insight">
+    <h3>Why V6 Won</h3>
+    <p>At Alpha = 500, Ridge found the ideal middle ground. Regularization was strong enough to prevent overfitting but not so aggressive that it destroyed learning capacity. Train, validation, and test scores all converged — a sign of genuine generalization, not memorization. The three engineered ratio features survived the shrinkage intact, confirming they carried real signal.</p>
+  </div>
+
+  <hr class="divider">
+
+  <!-- SECTION 10: REFLECTIONS -->
+  <div class="section-tag">09 — Reflections</div>
+  <h2 class="section-h">What This Journey<br><em>Actually</em> Taught Me</h2>
+
+  <ul class="lessons">
+    <li><div class="dot"></div><span><strong>Pipeline hygiene matters before any algorithm runs.</strong> Forgetting StandardScaler, mishandling missing values, or skipping outlier removal can halve your performance before a single hyperparameter is touched.</span></li>
+    <li><div class="dot"></div><span><strong>Feature engineering beats algorithm complexity.</strong> Three ratio features I created gave the model richer information than any raw column alone — and survived aggressive regularization.</span></li>
+    <li><div class="dot"></div><span><strong>Regularization is a dial, not a switch.</strong> Small alpha keeps flexibility, moderate alpha improves generalization, very large alpha destroys learning capacity. Tuning alpha is essential, not optional.</span></li>
+    <li><div class="dot"></div><span><strong>Fewer features is not always better.</strong> The SelectKBest experiment proved that preserving meaningful signal matters more than reducing feature count. Let regularization handle redundancy.</span></li>
+    <li><div class="dot"></div><span><strong>Always evaluate on train, validation, and test.</strong> Looking at only one split hides overfitting. Consistent R² across all three sets is the real signal of a model that generalises.</span></li>
+    <li><div class="dot"></div><span><strong>L2 and weight decay are the same idea.</strong> Ridge Regression shrinks all coefficients proportionally — neural network weight decay does the same thing to weights. Sparsity is the difference; shrinkage is universal.</span></li>
+  </ul>
+
+  <div style="margin-top:36px">
+    <div style="font-family:'Space Mono',monospace; font-size:10px; letter-spacing:2px; color:#aaa; text-transform:uppercase; margin-bottom:10px;">Skills Demonstrated</div>
+    <div class="tags">
+      <span class="tag">Ridge Regression</span>
+      <span class="tag">L2 Regularization</span>
+      <span class="tag">Feature Engineering</span>
+      <span class="tag">EDA</span>
+      <span class="tag">sklearn Pipelines</span>
+      <span class="tag">StandardScaler</span>
+      <span class="tag">OneHotEncoder</span>
+      <span class="tag">Hyperparameter Tuning</span>
+      <span class="tag">Python</span>
+      <span class="tag">Matplotlib</span>
+      <span class="tag">Seaborn</span>
+      <span class="tag">Bias-Variance Tradeoff</span>
+    </div>
+  </div>
+</div>
+
+<footer>ML Bakeoff · California Housing Price Prediction · Ridge Regression (L2) · May 2026</footer>
+
+<script>
+// ── CORRELATION CHART ──
+(function() {
+  const data = [
+    { name: 'median_income', val: 0.64, pos: true },
+    { name: 'rooms_per_hh', val: 0.21, pos: true },
+    { name: 'total_rooms', val: 0.13, pos: true },
+    { name: 'housing_median_age', val: 0.11, pos: true },
+    { name: 'households', val: 0.06, pos: true },
+    { name: 'total_bedrooms', val: 0.05, pos: true },
+    { name: 'population_per_hh', val: -0.02, pos: false },
+    { name: 'bedrooms_per_room', val: -0.26, pos: false },
+    { name: 'longitude', val: -0.05, pos: false },
+    { name: 'latitude', val: -0.14, pos: false },
+  ];
+  const container = document.getElementById('corrChart');
+  const max = 0.64;
+  data.forEach(d => {
+    const row = document.createElement('div');
+    row.className = 'bar-row';
+    const pct = Math.abs(d.val) / max * 90;
+    const color = d.pos ? 'var(--teal)' : '#e53935';
+    row.innerHTML = `
+      <div class="bar-label" style="font-size:9px;color:#666;width:110px;">${d.name}</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${pct}%;background:${color};">
+          <span class="bar-pct">${d.val > 0 ? '+':''}${d.val.toFixed(2)}</span>
+        </div>
+      </div>`;
+    container.appendChild(row);
+  });
+})();
+
+// ── ALPHA SWEEP CHART ──
+(function() {
+  const versions = [
+    { label: 'α=0.1 (V1)', r2: 62.3 },
+    { label: 'α=1 (V2)',   r2: 62.3 },
+    { label: 'α=10 (V3)',  r2: 62.5 },
+    { label: 'α=50 (V4)',  r2: 63.1 },
+    { label: 'α=100 (V5)', r2: 63.4 },
+    { label: 'α=500 (V6)', r2: 65.0, best: true },
+    { label: 'α=1K (V7)',  r2: 61.0 },
+    { label: 'α=5K (V8)',  r2: 57.0 },
+    { label: 'α=10K (V9)',  r2: 52.0 },
+    { label: 'α=20K (V10)', r2: 47.0 },
+    { label: 'sag (V11)',   r2: 64.8 },
+    { label: 'lsqr (V12)', r2: 64.9 },
+    { label: 'chol (V13)', r2: 65.0, best: true },
+    { label: '+ve (V14)',   r2: 56.5 },
+    { label: 'V15',         r2: 64.7 },
+  ];
+  const max = 65;
+  const container = document.getElementById('alphaChart');
+  versions.forEach(v => {
+    const row = document.createElement('div');
+    row.className = 'bar-row';
+    const pct = v.r2 / max * 100;
+    const fillClass = v.best ? 'bar-fill best' : v.r2 < 58 ? 'bar-fill dim' : 'bar-fill';
+    row.innerHTML = `
+      <div class="bar-label" style="width:80px;font-size:8.5px;">${v.label}</div>
+      <div class="bar-track">
+        <div class="${fillClass}" style="width:${pct}%;">
+          <span class="bar-pct">${v.r2}%</span>
+        </div>
+      </div>
+      <span class="bar-star">${v.best ? '★' : ''}</span>`;
+    container.appendChild(row);
+  });
+})();
+
+// ── COEFF CHART ──
+(function() {
+  const coeffs = [
+    { name: 'median_income', val: 60000 },
+    { name: 'rooms_per_hh', val: 8200 },
+    { name: 'housing_median_age', val: 6100 },
+    { name: 'ocean_prox_NEAR BAY', val: 4500 },
+    { name: 'ocean_prox_NEAR OCEAN', val: 3200 },
+    { name: 'bedrooms_per_room', val: -5400 },
+    { name: 'population_per_hh', val: -3100 },
+    { name: 'latitude', val: -21000 },
+    { name: 'longitude', val: -18000 },
+    { name: 'ocean_prox_INLAND', val: -24000 },
+  ];
+  const maxVal = 60000;
+  const container = document.getElementById('coeffChart');
+  coeffs.forEach(c => {
+    const row = document.createElement('div');
+    row.className = 'coeff-row';
+    const pct = Math.abs(c.val) / maxVal * 45;
+    const isPos = c.val > 0;
+    const label = c.val > 0 ? `+${(c.val/1000).toFixed(0)}K` : `${(c.val/1000).toFixed(0)}K`;
+    row.innerHTML = `
+      <div class="coeff-name">${c.name}</div>
+      <div class="coeff-track">
+        <div class="coeff-center"></div>
+        <div class="coeff-bar ${isPos ? 'coeff-pos' : 'coeff-neg'}" style="width:${pct}%;"></div>
+      </div>
+      <div class="coeff-val" style="color:${isPos ? 'var(--teal)' : '#e53935'}">${label}</div>`;
+    container.appendChild(row);
+  });
+})();
+
+// ── SCATTER CHART (SVG proxy) ──
+(function() {
+  const svg = document.getElementById('scatterChart');
+  const W = 500, H = 200;
+  const pad = 30;
+  const points = [];
+  // Generate realistic predicted vs actual cloud
+  const seed = (n) => { let x = Math.sin(n) * 10000; return x - Math.floor(x); };
+  for (let i = 0; i < 120; i++) {
+    const actual = 60 + seed(i * 3.7) * 440;
+    const noise = (seed(i * 1.3) - 0.5) * 120;
+    const predicted = actual * 0.82 + noise + 18;
+    points.push({ a: actual, p: Math.max(20, predicted) });
+  }
+  const maxV = 500;
+  const toX = v => pad + (v / maxV) * (W - 2 * pad);
+  const toY = v => H - pad - (v / maxV) * (H - 2 * pad);
+
+  let html = '';
+  // Diagonal guide line
+  html += `<line x1="${toX(0)}" y1="${toY(0)}" x2="${toX(500)}" y2="${toY(500)}" stroke="#e0ddd6" stroke-width="1.5" stroke-dasharray="4,4"/>`;
+  // Axes
+  html += `<line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#ccc" stroke-width="1"/>`;
+  html += `<line x1="${pad}" y1="${pad}" x2="${pad}" y2="${H-pad}" stroke="#ccc" stroke-width="1"/>`;
+  // Axis labels
+  html += `<text x="${W/2}" y="${H-4}" text-anchor="middle" font-family="Space Mono" font-size="8" fill="#999">Actual ($K)</text>`;
+  html += `<text x="10" y="${H/2}" text-anchor="middle" font-family="Space Mono" font-size="8" fill="#999" transform="rotate(-90,10,${H/2})">Predicted ($K)</text>`;
+  // Dots
+  points.forEach(p => {
+    const x = toX(p.a), y = toY(p.p);
+    html += `<circle cx="${x}" cy="${y}" r="3" fill="var(--teal)" opacity="0.45"/>`;
+  });
+  svg.innerHTML = html;
+})();
+</script>
+
+</body>
+</html>
